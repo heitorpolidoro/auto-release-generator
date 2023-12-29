@@ -62,20 +62,21 @@ def release(event: PushEvent) -> None:
         return
 
     version_file_path = "app/__init__.py"
-    version_file = repository.get_contents(version_file_path, ref=event.ref)
-    version_file_content = version_file.decoded_content.decode()
-    current_version_in_file = re.search(r"__version__ = \"(.+?)\"", version_file_content).group(1)
-    version_file_content = version_file_content.replace(current_version_in_file, last_command)
+    original_file = repository.get_contents(version_file_path, ref=repository.get_commit(sha=event.after).get_pulls()[0].base.ref)
+    original_file_content = original_file.decoded_content.decode()
+    current_version_in_file = re.search(r"__version__ = \"(.+?)\"", original_file_content).group(1)
+
+    file_to_update = repository.get_contents(version_file_path, ref=event.ref)
     repository.update_file(
         version_file_path,
         f"Release {last_command}",
-        version_file_content,
-        version_file.sha,
+        original_file_content.replace(current_version_in_file, last_command),
+        file_to_update.sha,
         branch=event.ref,
     )
 
 
-    print(version_file_content)
+    print(original_file_content)
 
 
 @app.route("/", methods=["GET"])
