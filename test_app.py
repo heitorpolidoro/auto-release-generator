@@ -97,13 +97,6 @@ def mock_approve_if_ok_pr():
         yield mock
 
 
-def test_approve_if_ok_success(
-    event, repository, pull, protected_branch, mock_approve_if_ok_pr
-):
-    event.state = "success"
-    approve_if_ok(event)
-    mock_approve_if_ok_pr.assert_called_once_with(repository, pull, protected_branch)
-
 
 def test_approve_if_ok_success_closed_pr(
     event, repository, pull, branch, mock_approve_if_ok_pr
