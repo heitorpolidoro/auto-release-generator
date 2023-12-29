@@ -67,16 +67,17 @@ def release(event: PushEvent) -> None:
     current_version_in_file = re.search(r"__version__ = \"(.+?)\"", original_file_content).group(1)
 
     file_to_update = repository.get_contents(version_file_path, ref=event.ref)
-    repository.update_file(
-        version_file_path,
-        f"Release {last_command}",
-        original_file_content.replace(current_version_in_file, last_command),
-        file_to_update.sha,
-        branch=event.ref,
-    )
+    new_content = original_file_content.replace(current_version_in_file, last_command)
+    if new_content != original_file_content:
+        print(f"Updating {version_file_path} with {last_command}")
+        repository.update_file(
+            version_file_path,
+            f"Release {last_command}",
+            new_content,
+            file_to_update.sha,
+            branch=event.ref,
+        )
 
-
-    print(original_file_content)
 
 
 @app.route("/", methods=["GET"])
