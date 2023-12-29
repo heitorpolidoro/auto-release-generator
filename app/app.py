@@ -2,6 +2,7 @@
 This file contains the main application logic for the Pull Request Generator,
 including a webhook handler for creating pull requests when new branches are created.
 """
+import json
 import logging
 import re
 import sys
@@ -55,10 +56,19 @@ def release(event: PushEvent) -> None:
     for commit in event.commits:
         last_command = last_command or get_commit_message_command(commit, "release")
     repository = event.repository
-    version_file = repository.get_contents("app/__init__.py", ref=event.ref)
-    version_file = version_file.decoded_content
-    version_file = version_file.decode()
-    print(last_command)
+    version_file_path = "app/__init__.py"
+    version_file = repository.get_contents(version_file_path, ref=event.ref)
+    version_file_content = version_file.decoded_content.decode()
+    current_version_in_file = re.search(r"__version__ = \"(.+?)\"", version_file_content).group(1)
+    version_file_content = version_file_content.replace(current_version_in_file, last_command)
+    repository.update_file(
+        version_file_path,
+        f"Release {last_command}",
+        version_file_content,
+        version_file.sha,
+        branch=event.ref,
+    )
+    print(version_file_content)
 
 
 @app.route("/", methods=["GET"])
