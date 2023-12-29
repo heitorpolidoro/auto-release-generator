@@ -3,10 +3,14 @@ This file contains the main application logic for the Pull Request Generator,
 including a webhook handler for creating pull requests when new branches are created.
 """
 import logging
+import re
 import sys
+from typing import Optional
 
 from flask import Flask, request
 from github.Branch import Branch
+from github.Commit import Commit
+from github.GitCommit import GitCommit
 from github.PullRequest import PullRequest
 from github.Repository import Repository
 from githubapp import webhook_handler
@@ -27,9 +31,30 @@ logging.basicConfig(
 )
 
 
+def get_commit_message_command(commit: GitCommit, command_prefix: str) -> Optional[str]:
+    """
+    Retrieve the command from the commit message.
+    The command in the commit message must be in the format [command_prefix: command]
+
+    :param commit: The Commit object.
+    :param command_prefix: The command prefix to look for in the commit message.
+    :return: The extracted command or None if there is no command.
+    :raises: ValueError if the command is not valid.
+    """
+    commit_message = commit.message
+    command_pattern = rf"\[{command_prefix}:(.+?)\]"
+    commands_found = re.findall(command_pattern, commit_message)
+    if commands_found:
+        return commands_found[-1].strip()
+    return None
+
+
 @webhook_handler.webhook_handler(PushEvent)
 def release(event: PushEvent) -> None:
-    print(event)
+    last_command = None
+    for commit in event.commits:
+        last_command = last_command or get_commit_message_command(commit, "release")
+    print(last_command)
 
 
 @app.route("/", methods=["GET"])
