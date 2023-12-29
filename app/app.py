@@ -74,6 +74,7 @@ def release(event: PushEvent) -> None:
         branch=event.ref,
     )
 
+
     print(version_file_content)
 
 
