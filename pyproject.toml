@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "PROJECT_NAME"
+name = "auto-release-generator"
 authors = [
     { name="Heitor Luis Polidoro" },
 ]
@@ -20,7 +20,7 @@ classifiers = [
 dynamic = ["version", "dependencies"]
 
 [project.urls]
-"Homepage" = "https://github.com/heitorpolidoro/PROJECT_NAME"
+"Homepage" = "https://github.com/heitorpolidoro/auto-release-generator"
 
 [tool.setuptools.dynamic]
 version = {attr = ".__version__"}
