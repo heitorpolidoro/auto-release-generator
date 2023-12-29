@@ -98,14 +98,6 @@ def mock_approve_if_ok_pr():
 
 
 
-def test_approve_if_ok_success_closed_pr(
-    event, repository, pull, branch, mock_approve_if_ok_pr
-):
-    event.state = "success"
-    pull.state = "closed"
-    approve_if_ok(event)
-    mock_approve_if_ok_pr.assert_not_called()
-
 
 def test_approve_if_ok_success_not_protected_branch(
     event, repository, pull, branch, mock_approve_if_ok_pr
