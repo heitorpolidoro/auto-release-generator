@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "PROJECT_NAME"
+authors = [
+    { name="Heitor Luis Polidoro" },
+]
+description = "Package to help creates Github Apps."
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = []
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+"Homepage" = "https://github.com/heitorpolidoro/PROJECT_NAME"
+
+[tool.setuptools.dynamic]
+version = {attr = ".__version__"}
+dependencies = {file = ["requirements.txt"]}
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*"]
+relative_files = true
+
+[tool.black]
+max_line_length = 120
