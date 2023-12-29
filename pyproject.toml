@@ -23,7 +23,7 @@ dynamic = ["version", "dependencies"]
 "Homepage" = "https://github.com/heitorpolidoro/auto-release-generator"
 
 [tool.setuptools.dynamic]
-version = {attr = ".__version__"}
+version = {attr = "app.__version__"}
 dependencies = {file = ["requirements.txt"]}
 
 [tool.coverage.run]

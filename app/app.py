@@ -54,6 +54,10 @@ def release(event: PushEvent) -> None:
     last_command = None
     for commit in event.commits:
         last_command = last_command or get_commit_message_command(commit, "release")
+    repository = event.repository
+    version_file = repository.get_contents("app/__init__.py", ref=event.ref)
+    version_file = version_file.decoded_content
+    version_file = version_file.decode()
     print(last_command)
 
 
