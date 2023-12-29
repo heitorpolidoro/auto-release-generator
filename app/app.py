@@ -52,10 +52,15 @@ def get_commit_message_command(commit: GitCommit, command_prefix: str) -> Option
 
 @webhook_handler.webhook_handler(PushEvent)
 def release(event: PushEvent) -> None:
+    repository = event.repository
+    if event.ref.endswith(repository.default_branch):
+        return
     last_command = None
     for commit in event.commits:
         last_command = last_command or get_commit_message_command(commit, "release")
-    repository = event.repository
+    if last_command is None:
+        return
+
     version_file_path = "app/__init__.py"
     version_file = repository.get_contents(version_file_path, ref=event.ref)
     version_file_content = version_file.decoded_content.decode()
