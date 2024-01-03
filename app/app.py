@@ -4,10 +4,12 @@ including a webhook handler for creating pull requests when new branches are cre
 """
 import json
 import logging
+import os
 import re
 import sys
 from typing import Optional
 
+import sentry_sdk
 from flask import Flask, request
 from github.Branch import Branch
 from github.Commit import Commit
@@ -17,34 +19,43 @@ from github.Repository import Repository
 from githubapp import webhook_handler
 from githubapp.events import PushEvent
 
-app = Flask("Auto Release Generator")
-app.__doc__ = "This is a Flask application auto merging pull requests."
-
-# if sentry_dns := os.getenv("SENTRY_DNS"):  # pragma: no cover
-#     # Initialize Sentry SDK for error logging
-#     sentry_sdk.init(sentry_dns)
-
-logger = logging.getLogger(__name__)
 logging.basicConfig(
     stream=sys.stdout,
     format="%(levelname)s:%(module)s:%(funcName)s:%(message)s",
     level=logging.INFO,
 )
+logger = logging.getLogger(__name__)
+
+if sentry_dns := os.getenv("SENTRY_DSN"):  # pragma: no cover
+    # Initialize Sentry SDK for error logging
+    sentry_sdk.init(
+        dsn=sentry_dns,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        traces_sample_rate=1.0,
+        # Set profiles_sample_rate to 1.0 to profile 100%
+        # of sampled transactions.
+        # We recommend adjusting this value in production.
+        profiles_sample_rate=1.0,
+    )
+    logger.info("Sentry initialized")
+
+app = Flask("Auto Release Generator")
+app.__doc__ = "This is a Flask application auto merging pull requests."
 
 
-def get_commit_message_command(commit: GitCommit, command_prefix: str) -> Optional[str]:
+def get_command(text: str, command_prefix: str) -> Optional[str]:
     """
     Retrieve the command from the commit message.
     The command in the commit message must be in the format [command_prefix: command]
 
-    :param commit: The Commit object.
+    :param text: The Commit object.
     :param command_prefix: The command prefix to look for in the commit message.
     :return: The extracted command or None if there is no command.
     :raises: ValueError if the command is not valid.
     """
-    commit_message = commit.message
     command_pattern = rf"\[{command_prefix}:(.+?)\]"
-    commands_found = re.findall(command_pattern, commit_message)
+    commands_found = re.findall(command_pattern, text)
     if commands_found:
         return commands_found[-1].strip()
     return None
@@ -52,23 +63,34 @@ def get_commit_message_command(commit: GitCommit, command_prefix: str) -> Option
 
 @webhook_handler.webhook_handler(PushEvent)
 def release(event: PushEvent) -> None:
+    print(event.head_commit.raw_data)
+    repository = event.repository
     last_command = None
     for commit in event.commits:
-        last_command = last_command or get_commit_message_command(commit, "release")
-    repository = event.repository
+        last_command = last_command or get_command(commit.message, "release")
+    if last_command is None:
+        return
+    if event.ref.endswith(repository.default_branch):
+        # create release
+        return
+
     version_file_path = "app/__init__.py"
-    version_file = repository.get_contents(version_file_path, ref=event.ref)
-    version_file_content = version_file.decoded_content.decode()
-    current_version_in_file = re.search(r"__version__ = \"(.+?)\"", version_file_content).group(1)
-    version_file_content = version_file_content.replace(current_version_in_file, last_command)
-    repository.update_file(
-        version_file_path,
-        f"Release {last_command}",
-        version_file_content,
-        version_file.sha,
-        branch=event.ref,
-    )
-    print(version_file_content)
+    original_file = repository.get_contents(version_file_path, ref=repository.default_branch)
+    original_file_content = original_file.decoded_content.decode()
+    original_version_in_file = re.search(r"__version__ = \"(.+?)\"", original_file_content).group(1)
+
+    file_to_update = repository.get_contents(version_file_path, ref=event.ref)
+    file_to_update_current_content = file_to_update.decoded_content.decode()
+    new_content = original_file_content.replace(original_version_in_file, last_command)
+    if new_content != file_to_update_current_content:
+        print(f"Updating {version_file_path} with {last_command}")
+        repository.update_file(
+            version_file_path,
+            f"Release {last_command}",
+            new_content,
+            file_to_update.sha,
+            branch=event.ref,
+        )
 
 
 @app.route("/", methods=["GET"])
