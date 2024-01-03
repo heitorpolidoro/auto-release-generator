@@ -5,80 +5,28 @@ from unittest.mock import Mock, patch
 import pytest
 import sentry_sdk
 
-from app import app, approve_if_ok, approve_if_ok_pr
+from app.app import app, get_command, release
 
 
 @pytest.fixture
-def branch():
-    """
-    This fixture returns a mocked branch object with default values for the attributes.
-    :return: Mocked Repository
-    """
-    return Mock(protected=False, ref="feature")
-
-
-@pytest.fixture
-def author():
-    """
-    This fixture returns a mocked author object with default values for the attributes.
-    :return: Mocked NamedUser
-    """
-    return Mock(login="heitorpolidoro")
-
-
-@pytest.fixture
-def protected_branch(author):
-    """
-    This fixture returns a mocked protected branch object with default values for the attributes.
-    :return: Mocked Repository
-    """
-    protected_branch = Mock(protected=True, ref="master")
-
-    required_pull_request_reviews = (
-        protected_branch.get_protection.return_value.required_pull_request_reviews
-    )
-    required_pull_request_reviews.require_code_owner_reviews = [author]
-    required_pull_request_reviews.required_approving_review_count = 1
-    return protected_branch
-
-
-@pytest.fixture
-def pull(protected_branch, branch, author):
-    """
-    This fixture returns a mocked pull object with default values for the attributes.
-    :return: Mocked Repository
-    """
-    pull = Mock(
-        base=protected_branch, head=branch, requested_reviewers=[author], state="open"
-    )
-    pull.get_reviews.return_value = []
-    return pull
-
-
-@pytest.fixture
-def commit(pull, author):
+def commit():
     """
     This fixture returns a mocked commit object with default values for the attributes.
     :return: Mocked Commit
     """
-    commit = Mock(author=author)
-    commit.get_pulls.return_value = [pull]
+    commit = Mock(message="[release:command]")
     return commit
 
 
 @pytest.fixture
-def repository(protected_branch, branch, commit):
+def repository():
     """
     This fixture returns a mocked repository object with default values for the attributes.
     :return: Mocked Repository
     """
     repository = Mock(
-        default_branch="master", full_name="heitorpolidoro/pull-request-generator"
+        default_branch="master", full_name="heitorpolidoro/auto-release-generator"
     )
-    repository.get_branch = (
-        lambda branch_ref: protected_branch if branch_ref == "master" else branch
-    )
-    repository.compare.return_value.commits = [commit]
     return repository
 
 
@@ -88,74 +36,7 @@ def event(repository, commit):
     This fixture returns a mocked event object with default values for the attributes.
     :return: Mocked Event
     """
-    return Mock(repository=repository, commit=commit, ref="issue-42")
-
-
-@pytest.fixture
-def mock_approve_if_ok_pr():
-    with patch("app.approve_if_ok_pr") as mock:
-        yield mock
-
-
-
-def test_approve_if_ok_not_success(
-    event, repository, pull, protected_branch, mock_approve_if_ok_pr
-):
-    event.state = "failure"
-    approve_if_ok(event)
-    mock_approve_if_ok_pr.assert_not_called()
-
-
-def test_approve_if_ok_pr(pull, repository, protected_branch):
-    approve_if_ok_pr(repository, pull, protected_branch)
-    pull.create_review.assert_called_once_with(
-        body="Approved by Self Approver", event="APPROVE"
-    )
-
-
-def test_approve_if_ok_dismissed_review(pull, repository, protected_branch, author):
-    pull.requested_reviewers = []
-    pull.get_reviews.return_value = [
-        Mock(state="DISMISSED", user=author),
-        Mock(state="COMMENTED", user=Mock(login="other")),
-    ]
-    approve_if_ok_pr(repository, pull, protected_branch)
-    pull.create_review.assert_called_once_with(
-        body="Approved by Self Approver", event="APPROVE"
-    )
-
-
-def test_approve_if_ok_pr_not_match_pr_request_reviews(
-    pull, repository, protected_branch, author
-):
-    required_pull_request_reviews = (
-        protected_branch.get_protection.return_value.required_pull_request_reviews
-    )
-
-    required_pull_request_reviews.required_approving_review_count = 2
-    required_pull_request_reviews.require_code_owner_reviews = [author]
-    approve_if_ok_pr(repository, pull, protected_branch)
-
-    required_pull_request_reviews.required_approving_review_count = 1
-    required_pull_request_reviews.require_code_owner_reviews = []
-    approve_if_ok_pr(repository, pull, protected_branch)
-
-    required_pull_request_reviews.required_approving_review_count = 1
-    required_pull_request_reviews.require_code_owner_reviews = [author]
-    pull.requested_reviewers = []
-    approve_if_ok_pr(repository, pull, protected_branch)
-
-    other_author = Mock(login="other")
-    required_pull_request_reviews.required_approving_review_count = 1
-    required_pull_request_reviews.require_code_owner_reviews = [author]
-    pull.requested_reviewers = [other_author]
-    approve_if_ok_pr(repository, pull, protected_branch)
-
-    pull.requested_reviewers = []
-    pull.get_reviews.return_value = [Mock(state="DISMISSED", user=other_author)]
-    approve_if_ok_pr(repository, pull, protected_branch)
-
-    pull.create_review.assert_not_called()
+    return Mock(repository=repository, commits=[commit], ref="issue-42")
 
 
 class TestApp(TestCase):
@@ -174,7 +55,7 @@ class TestApp(TestCase):
         """
         response = self.app.get("/")
         assert response.status_code == 200
-        assert response.text == "Self Approver App up and running!"
+        assert response.text == "Auto Release Generator App up and running!"
 
     def test_webhook(self):
         """
@@ -184,7 +65,7 @@ class TestApp(TestCase):
         with a specific JSON payload and headers, and checks that the `handle` function is called with the correct
         arguments.
         """
-        with patch("app.webhook_handler.handle") as mock_handle:
+        with patch("app.app.webhook_handler.handle") as mock_handle:
             request_json = {"action": "opened", "number": 1}
             headers = {
                 "User-Agent": "Werkzeug/3.0.1",
@@ -195,3 +76,20 @@ class TestApp(TestCase):
             }
             self.app.post("/", headers=headers, json=request_json)
             mock_handle.assert_called_once_with(headers, request_json)
+
+
+def test_get_command(commit):
+    assert get_command(commit.message, "release") == "command"
+
+
+def test_get_command_no_command(commit):
+    assert get_command(commit.message, "prefix") is None
+
+
+def test_get_command_multiple_commands():
+    assert get_command("[release:command1][release:command2]", "release") == "command2"
+
+
+def test_release(event, commit, repository):
+    release(event)
+    repository.update_file.assert_called_once_with()
