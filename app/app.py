@@ -63,6 +63,7 @@ def get_command(text: str, command_prefix: str) -> Optional[str]:
 
 @webhook_handler.webhook_handler(PushEvent)
 def release(event: PushEvent) -> None:
+    print(event.head_commit.raw_data)
     repository = event.repository
     last_command = None
     for commit in event.commits:
@@ -74,14 +75,14 @@ def release(event: PushEvent) -> None:
         return
 
     version_file_path = "app/__init__.py"
-    original_file = repository.get_contents(version_file_path,
-                                            ref=repository.get_commit(sha=event.after).get_pulls()[0].base.ref)
+    original_file = repository.get_contents(version_file_path, ref=repository.default_branch)
     original_file_content = original_file.decoded_content.decode()
-    current_version_in_file = re.search(r"__version__ = \"(.+?)\"", original_file_content).group(1)
+    original_version_in_file = re.search(r"__version__ = \"(.+?)\"", original_file_content).group(1)
 
     file_to_update = repository.get_contents(version_file_path, ref=event.ref)
-    new_content = original_file_content.replace(current_version_in_file, last_command)
-    if new_content != original_file_content:
+    file_to_update_current_content = file_to_update.decoded_content.decode()
+    new_content = original_file_content.replace(original_version_in_file, last_command)
+    if new_content != file_to_update_current_content:
         print(f"Updating {version_file_path} with {last_command}")
         repository.update_file(
             version_file_path,
