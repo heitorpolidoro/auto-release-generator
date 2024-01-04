@@ -1,4 +1,4 @@
-github-app-handler==0.5
+github-app-handler==0.6
 sentry-sdk==1.39.1
 flask==3.0.0
 Polidoro-PyGithub==2.2.0rc5

@@ -2,7 +2,6 @@
 This file contains the main application logic for the Pull Request Generator,
 including a webhook handler for creating pull requests when new branches are created.
 """
-import json
 import logging
 import os
 import re
@@ -11,11 +10,6 @@ from typing import Optional
 
 import sentry_sdk
 from flask import Flask, request
-from github.Branch import Branch
-from github.Commit import Commit
-from github.GitCommit import GitCommit
-from github.PullRequest import PullRequest
-from github.Repository import Repository
 from githubapp import webhook_handler
 from githubapp.events import PushEvent
 
