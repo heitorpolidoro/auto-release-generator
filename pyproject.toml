@@ -35,4 +35,4 @@ relative_files = true
 max_line_length = 120
 
 [tool.pytest.ini_options]
-addopts = "--cov --cov-branch --cov-report=term-missing --cov-fail-under=100 -f -x"
+addopts = "--cov --cov-branch --cov-report=term-missing --cov-fail-under=100"
