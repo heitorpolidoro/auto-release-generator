@@ -34,7 +34,7 @@ def repository():
         default_branch="master", full_name="heitorpolidoro/auto-release-generator"
     )
     contents = Mock(sha="file_sha")
-    contents.decoded_content.decode.return_value = "__version__ = \"0.1\""
+    contents.decoded_content.decode.return_value = '__version__ = "0.1"'
     repository.get_contents.return_value = contents
     return repository
 
@@ -105,7 +105,7 @@ def test_release(event, repository, get_command_mock):
     repository.update_file.assert_called_once_with(
         "app/__init__.py",
         "Release release",
-        "__version__ = \"release\"",
+        '__version__ = "release"',
         "file_sha",
         branch="issue-42",
     )
@@ -126,6 +126,8 @@ def test_release_default_branch(event, repository, get_command_mock):
 
 def test_release_already_updated(event, repository, get_command_mock):
     get_command_mock.return_value = "release"
-    repository.get_contents.return_value.decoded_content.decode.return_value = "__version__ = \"release\""
+    repository.get_contents.return_value.decoded_content.decode.return_value = (
+        '__version__ = "release"'
+    )
     release(event)
     repository.update_file.assert_not_called()
