@@ -75,9 +75,13 @@ def release(event: PushEvent) -> None:
         return
 
     version_file_path = "app/__init__.py"
-    original_file = repository.get_contents(version_file_path, ref=repository.default_branch)
+    original_file = repository.get_contents(
+        version_file_path, ref=repository.default_branch
+    )
     original_file_content = original_file.decoded_content.decode()
-    original_version_in_file = re.search(r"__version__ = \"(.+?)\"", original_file_content).group(1)
+    original_version_in_file = re.search(
+        r"__version__ = \"(.+?)\"", original_file_content
+    ).group(1)
 
     file_to_update = repository.get_contents(version_file_path, ref=event.ref)
     file_to_update_current_content = file_to_update.decoded_content.decode()
