@@ -99,7 +99,7 @@ def test_get_command_multiple_commands():
     assert get_command("[release:command1][release:command2]", "release") == "command2"
 
 
-def test_release(event, repository, get_command_mock):
+def test_update_file(event, repository, get_command_mock):
     get_command_mock.return_value = "release"
     release(event)
     repository.update_file.assert_called_once_with(
@@ -111,20 +111,21 @@ def test_release(event, repository, get_command_mock):
     )
 
 
-def test_release_no_command(event, repository, get_command_mock):
+def test_update_file_no_command(event, repository, get_command_mock):
     get_command_mock.return_value = None
     release(event)
     repository.update_file.assert_not_called()
 
 
-def test_release_default_branch(event, repository, get_command_mock):
+def test_update_file_default_branch(event, repository, get_command_mock):
     get_command_mock.return_value = "release"
     event.ref = "refs/head/master"
     release(event)
+    repository.create_git_release.assert_called_once_with(tag="release", generate_release_notes=True)
     repository.update_file.assert_not_called()
 
 
-def test_release_already_updated(event, repository, get_command_mock):
+def test_update_file_already_updated(event, repository, get_command_mock):
     get_command_mock.return_value = "release"
     repository.get_contents.return_value.decoded_content.decode.return_value = (
         '__version__ = "release"'

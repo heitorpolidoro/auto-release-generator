@@ -10,9 +10,10 @@ from typing import Optional
 
 import sentry_sdk
 from flask import Flask, request
+from github import UnknownObjectException
 from githubapp import webhook_handler
 from githubapp.events import PushEvent
-
+import yaml
 logging.basicConfig(
     stream=sys.stdout,
     format="%(levelname)s:%(module)s:%(funcName)s:%(message)s",
@@ -57,18 +58,26 @@ def get_command(text: str, command_prefix: str) -> Optional[str]:
 
 @webhook_handler.webhook_handler(PushEvent)
 def release(event: PushEvent) -> None:
-    print(event.head_commit.raw_data)
     repository = event.repository
     last_command = None
     for commit in event.commits:
         last_command = last_command or get_command(commit.message, "release")
     if last_command is None:
-        return
-    if event.ref.endswith(repository.default_branch):
-        # create release
+        print("No command found")
         return
 
-    version_file_path = "app/__init__.py"
+    version_to_release = last_command
+    if event.ref.endswith(repository.default_branch):
+        repository.create_git_release(tag=version_to_release, generate_release_notes=True)
+        return
+
+    try:
+        config = yaml.safe_load(repository.get_contents(".autoreleasegenerator.yml", ref=event.ref).decoded_content)
+        version_file_path = config["file_path"]
+    except UnknownObjectException:
+        # TODO o que fazer?
+        pass
+
     original_file = repository.get_contents(
         version_file_path, ref=repository.default_branch
     )
@@ -79,9 +88,9 @@ def release(event: PushEvent) -> None:
 
     file_to_update = repository.get_contents(version_file_path, ref=event.ref)
     file_to_update_current_content = file_to_update.decoded_content.decode()
-    new_content = original_file_content.replace(original_version_in_file, last_command)
+    new_content = original_file_content.replace(original_version_in_file, version_to_release)
     if new_content != file_to_update_current_content:
-        print(f"Updating {version_file_path} with {last_command}")
+        print(f"Updating {version_file_path} with {version_to_release}")
         repository.update_file(
             version_file_path,
             f"Release {last_command}",
