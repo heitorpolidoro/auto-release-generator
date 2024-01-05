@@ -83,7 +83,7 @@ def release(event: PushEvent) -> None:
     version_file_path = config["file_path"]
     # except UnknownObjectException:
     ##     TODO o que fazer?
-        # pass
+    # pass
 
     original_file = repository.get_contents(
         version_file_path, ref=repository.default_branch
