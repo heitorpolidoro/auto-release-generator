@@ -74,16 +74,16 @@ def release(event: PushEvent) -> None:
         )
         return
 
-    try:
-        config = yaml.safe_load(
-            repository.get_contents(
-                ".autoreleasegenerator.yml", ref=event.ref
-            ).decoded_content
-        )
-        version_file_path = config["file_path"]
-    except UnknownObjectException:
-        # TODO o que fazer?
-        pass
+    # try:
+    config = yaml.safe_load(
+        repository.get_contents(
+            ".autoreleasegenerator.yml", ref=event.ref
+        ).decoded_content
+    )
+    version_file_path = config["file_path"]
+    # except UnknownObjectException:
+    ##     TODO o que fazer?
+        # pass
 
     original_file = repository.get_contents(
         version_file_path, ref=repository.default_branch
