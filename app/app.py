@@ -11,7 +11,6 @@ from typing import Optional
 import sentry_sdk
 import yaml
 from flask import Flask, request
-from github import UnknownObjectException
 from githubapp import webhook_handler
 from githubapp.events import PushEvent
 
@@ -74,16 +73,12 @@ def release(event: PushEvent) -> None:
         )
         return
 
-    # try:
     config = yaml.safe_load(
         repository.get_contents(
             ".autoreleasegenerator.yml", ref=event.ref
         ).decoded_content
     )
     version_file_path = config["file_path"]
-    # except UnknownObjectException:
-    ##     TODO o que fazer?
-    # pass
 
     original_file = repository.get_contents(
         version_file_path, ref=repository.default_branch
