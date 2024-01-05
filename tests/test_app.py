@@ -8,6 +8,13 @@ import sentry_sdk
 from app.app import app, get_command, release
 
 
+@pytest.fixture(autouse=True)
+def yaml_mock():
+    with patch("yaml.safe_load") as yaml:
+        yaml.return_value = {"file_path": "app/__init__.py"}
+        yield
+
+
 @pytest.fixture
 def get_command_mock():
     with patch("app.app.get_command") as mock:
