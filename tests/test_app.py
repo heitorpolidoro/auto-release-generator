@@ -121,7 +121,9 @@ def test_update_file_default_branch(event, repository, get_command_mock):
     get_command_mock.return_value = "release"
     event.ref = "refs/head/master"
     release(event)
-    repository.create_git_release.assert_called_once_with(tag="release", generate_release_notes=True)
+    repository.create_git_release.assert_called_once_with(
+        tag="release", generate_release_notes=True
+    )
     repository.update_file.assert_not_called()
 
 

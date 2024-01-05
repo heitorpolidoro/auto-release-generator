@@ -9,11 +9,12 @@ import sys
 from typing import Optional
 
 import sentry_sdk
+import yaml
 from flask import Flask, request
 from github import UnknownObjectException
 from githubapp import webhook_handler
 from githubapp.events import PushEvent
-import yaml
+
 logging.basicConfig(
     stream=sys.stdout,
     format="%(levelname)s:%(module)s:%(funcName)s:%(message)s",
@@ -68,11 +69,17 @@ def release(event: PushEvent) -> None:
 
     version_to_release = last_command
     if event.ref.endswith(repository.default_branch):
-        repository.create_git_release(tag=version_to_release, generate_release_notes=True)
+        repository.create_git_release(
+            tag=version_to_release, generate_release_notes=True
+        )
         return
 
     try:
-        config = yaml.safe_load(repository.get_contents(".autoreleasegenerator.yml", ref=event.ref).decoded_content)
+        config = yaml.safe_load(
+            repository.get_contents(
+                ".autoreleasegenerator.yml", ref=event.ref
+            ).decoded_content
+        )
         version_file_path = config["file_path"]
     except UnknownObjectException:
         # TODO o que fazer?
@@ -88,7 +95,9 @@ def release(event: PushEvent) -> None:
 
     file_to_update = repository.get_contents(version_file_path, ref=event.ref)
     file_to_update_current_content = file_to_update.decoded_content.decode()
-    new_content = original_file_content.replace(original_version_in_file, version_to_release)
+    new_content = original_file_content.replace(
+        original_version_in_file, version_to_release
+    )
     if new_content != file_to_update_current_content:
         print(f"Updating {version_file_path} with {version_to_release}")
         repository.update_file(
