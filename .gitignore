@@ -161,4 +161,4 @@ cython_debug/
 /.python-version
 /private-key.pem
 
-.vercel/
+.vercel
