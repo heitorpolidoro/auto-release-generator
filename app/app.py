@@ -11,8 +11,9 @@ from typing import Optional
 import sentry_sdk
 import yaml
 from flask import Flask, request
+from github import UnknownObjectException
 from githubapp import webhook_handler
-from githubapp.events import PushEvent
+from githubapp.events import PushEvent, CheckSuiteRequestedEvent
 
 logging.basicConfig(
     stream=sys.stdout,
@@ -35,7 +36,8 @@ if sentry_dns := os.getenv("SENTRY_DSN"):  # pragma: no cover
     )
     logger.info("Sentry initialized")
 
-app = Flask("Auto Release Generator")
+APP_NAME = "Auto Release Generator"
+app = Flask(APP_NAME)
 app.__doc__ = "This is a Flask application auto merging pull requests."
 
 
@@ -59,25 +61,51 @@ def get_command(text: str, command_prefix: str) -> Optional[str]:
 @webhook_handler.webhook_handler(PushEvent)
 def release(event: PushEvent) -> None:
     repository = event.repository
+
+    check_run = repository.create_check_run(
+        APP_NAME,
+        event.head_commit.sha,
+        status="in_progress",
+        output={
+            "title": "Auto Release Generator",
+            "summary": "Checking for release command",
+        },
+    )
+
     last_command = None
     for commit in event.commits:
         last_command = last_command or get_command(commit.message, "release")
     if last_command is None:
-        print("No command found")
+        check_run.edit(
+            status="completed",
+            output={"title": "No release command found", "summary": ""},
+            conclusion="success"
+        )
         return
 
     version_to_release = last_command
+    check_run.edit(
+        output={
+            "title": f"Releasing {version_to_release}",
+            "summary": f"Checking for release command ✅\nReleasing {version_to_release}",
+        },
+    )
+
     if event.ref.endswith(repository.default_branch):
         repository.create_git_release(
             tag=version_to_release, generate_release_notes=True
         )
         return
 
-    config = yaml.safe_load(
-        repository.get_contents(
-            ".autoreleasegenerator.yml", ref=event.ref
-        ).decoded_content
-    )
+    try:
+        config = yaml.safe_load(
+            repository.get_contents(
+                ".autoreleasegenerator.yml", ref=event.ref
+            ).decoded_content
+        )
+    except UnknownObjectException:
+        print("No config file found")
+        return
     version_file_path = config["file_path"]
 
     original_file = repository.get_contents(

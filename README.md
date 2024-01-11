@@ -12,17 +12,10 @@ A handler helper to create GitHub App easily
 [![GitHub issues](https://img.shields.io/github/issues/heitorpolidoro/auto-release-generator)](https://github.com/heitorpolidoro/auto-release-generator/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/heitorpolidoro/auto-release-generator)](https://github.com/heitorpolidoro/auto-release-generator/pulls)
 
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=coverage)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_auto-release-generator&metric=coverage)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_auto-release-generator)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_auto-release-generator&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_auto-release-generator)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_auto-release-generator&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_auto-release-generator)
 <br>
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
-<br>
-[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
-[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=bugs)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
-[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_project-name&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_project-name)
-<br>
-[![DeepSource](https://app.deepsource.com/gh/heitorpolidoro/auto-release-generator.svg/?label=active+issues&show_trend=true&token=hZuHoQ-gd4kIPgNuSX0X_QT2)](https://app.deepsource.com/gh/heitorpolidoro/auto-release-generator/)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_auto-release-generator&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_auto-release-generator)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_auto-release-generator&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_auto-release-generator)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=heitorpolidoro_auto-release-generator&metric=bugs)](https://sonarcloud.io/summary/new_code?id=heitorpolidoro_auto-release-generator)
