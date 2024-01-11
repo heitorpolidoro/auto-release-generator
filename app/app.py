@@ -13,7 +13,7 @@ import yaml
 from flask import Flask, request
 from github import UnknownObjectException
 from githubapp import webhook_handler
-from githubapp.events import PushEvent, CheckSuiteRequestedEvent
+from githubapp.events import CheckSuiteRequestedEvent, PushEvent
 
 logging.basicConfig(
     stream=sys.stdout,
@@ -79,7 +79,7 @@ def release(event: PushEvent) -> None:
         check_run.edit(
             status="completed",
             output={"title": "No release command found", "summary": ""},
-            conclusion="success"
+            conclusion="success",
         )
         return
 
