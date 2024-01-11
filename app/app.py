@@ -66,10 +66,12 @@ def get_command(text: str, command_prefix: str) -> Optional[str]:
 @webhook_handler.webhook_handler(PushEvent)
 def release(event: PushEvent) -> None:
     repository = event.repository
+    head_commit = event.head_commit
+    head_commit.update()
 
     check_run = repository.create_check_run(
         APP_NAME,
-        event.head_commit.sha,
+        head_commit.sha,
         status="in_progress",
         output={
             "title": "Auto Release Generator",
