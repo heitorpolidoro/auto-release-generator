@@ -10,10 +10,10 @@ from typing import Optional
 
 import sentry_sdk
 import yaml
-from flask import Flask, request
+from flask import Flask
 from github import UnknownObjectException
 from githubapp import webhook_handler
-from githubapp.events import PushEvent, CheckSuiteRequestedEvent
+from githubapp.events import PushEvent
 
 logging.basicConfig(
     stream=sys.stdout,
@@ -21,24 +21,29 @@ logging.basicConfig(
     level=logging.INFO,
 )
 logger = logging.getLogger(__name__)
-
-if sentry_dns := os.getenv("SENTRY_DSN"):  # pragma: no cover
-    # Initialize Sentry SDK for error logging
-    sentry_sdk.init(
-        dsn=sentry_dns,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        traces_sample_rate=1.0,
-        # Set profiles_sample_rate to 1.0 to profile 100%
-        # of sampled transactions.
-        # We recommend adjusting this value in production.
-        profiles_sample_rate=1.0,
-    )
-    logger.info("Sentry initialized")
-
 APP_NAME = "Auto Release Generator"
 app = Flask(APP_NAME)
 app.__doc__ = "This is a Flask application auto merging pull requests."
+
+
+def sentry_init():
+    if sentry_dns := os.getenv("SENTRY_DSN"):  # pragma: no cover
+        # Initialize Sentry SDK for error logging
+        sentry_sdk.init(
+            dsn=sentry_dns,
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            traces_sample_rate=1.0,
+            # Set profiles_sample_rate to 1.0 to profile 100%
+            # of sampled transactions.
+            # We recommend adjusting this value in production.
+            profiles_sample_rate=1.0,
+        )
+        logger.info("Sentry initialized")
+
+
+sentry_init()
+webhook_handler.handle_with_flask(app)
 
 
 def get_command(text: str, command_prefix: str) -> Optional[str]:
@@ -130,24 +135,3 @@ def release(event: PushEvent) -> None:
             file_to_update.sha,
             branch=event.ref,
         )
-
-
-@app.route("/", methods=["GET"])
-def root() -> str:
-    """
-    This route displays the welcome screen of the application.
-    It uses the root function of the webhook_handler to generate the welcome screen.
-    """
-    return webhook_handler.root(app.name)()
-
-
-@app.route("/", methods=["POST"])
-def webhook() -> str:
-    """
-    This route is the endpoint that receives the GitHub webhook call.
-    It handles the headers and body of the request, and passes them to the webhook_handler for processing.
-    """
-    headers = dict(request.headers)
-    body = request.json
-    webhook_handler.handle(headers, body)
-    return "OK"
