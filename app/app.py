@@ -84,7 +84,7 @@ def release(event: PushEvent) -> None:
         check_run.edit(
             status="completed",
             output={"title": "No release command found", "summary": ""},
-            conclusion="success"
+            conclusion="success",
         )
         return
 
