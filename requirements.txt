@@ -1,6 +1,6 @@
 github-app-handler<1.0
 sentry-sdk<2.0
 flask<4.0
-Polidoro-PyGithub==2.2.0rc7
+Polidoro-PyGithub<=3.0
 python-dotenv<2.0
 pyyaml<=7.0

@@ -1,11 +1,12 @@
 """
-This file contains the main application logic for the Pull Request Generator,
-including a webhook handler for creating pull requests when new branches are created.
+This module contains the Flask application and routes for the auto release
+generator app.
 """
 import logging
 import os
 import re
 import sys
+from string import Template
 from typing import Optional
 
 import sentry_sdk
@@ -23,7 +24,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 APP_NAME = "Auto Release Generator"
 app = Flask(APP_NAME)
-app.__doc__ = "This is a Flask application auto merging pull requests."
 
 
 def sentry_init():
@@ -44,6 +44,11 @@ def sentry_init():
 
 sentry_init()
 webhook_handler.handle_with_flask(app)
+
+
+def _escape_markdown(text):
+    escape_chars = r"_*~`>#+-=|{}.!"
+    return re.sub(f"([{re.escape(escape_chars)}])", r"\\\1", text)
 
 
 def get_command(text: str, command_prefix: str) -> Optional[str]:
@@ -69,33 +74,24 @@ def release(event: PushEvent) -> None:
     head_commit = event.head_commit
     head_commit.update()
 
-    check_run = repository.create_check_run(
-        APP_NAME,
-        head_commit.sha,
-        status="in_progress",
-        output={
-            "title": "Auto Release Generator",
-            "summary": "Checking for release command",
-        },
+    event.start_check_run(
+        APP_NAME, head_commit.sha, title="Checking for release command"
     )
 
     last_command = None
     for commit in event.commits:
         last_command = last_command or get_command(commit.message, "release")
     if last_command is None:
-        check_run.edit(
-            status="completed",
-            output={"title": "No release command found", "summary": ""},
-            conclusion="success"
+        event.update_check_run(
+            title="No release command found",
+            conclusion="success",
         )
         return
 
     version_to_release = last_command
-    check_run.edit(
-        output={
-            "title": f"Releasing {version_to_release}",
-            "summary": f"Checking for release command ✅\nReleasing {version_to_release}",
-        },
+    event.update_check_run(
+        title=f"Releasing {version_to_release}",
+        summary=f"Checking for release command ✅\nReleasing {version_to_release}",
     )
 
     if event.ref.endswith(repository.default_branch):
@@ -105,23 +101,59 @@ def release(event: PushEvent) -> None:
         return
 
     try:
-        config = yaml.safe_load(
-            repository.get_contents(
-                ".autoreleasegenerator.yml", ref=event.ref
-            ).decoded_content
+        config = (
+            yaml.safe_load(
+                repository.get_contents(
+                    ".autoreleasegenerator.yml", ref=event.ref
+                ).decoded_content
+            )
+            or {}
         )
     except UnknownObjectException:
-        print("No config file found")
+        event.update_check_run(
+            title=f"Releasing {version_to_release} ❌",
+            summary=f"Checking for release command ✅\nReleasing {version_to_release} ❌",
+            text="No .autoreleasegenerator.yml file found in the branch",
+            conclusion="failure",
+        )
         return
-    version_file_path = config["file_path"]
 
-    original_file = repository.get_contents(
-        version_file_path, ref=repository.default_branch
-    )
+    if (version_file_path := config.get("file_path")) is None:
+        event.update_check_run(
+            title=f"Releasing {version_to_release} ❌",
+            summary=f"Checking for release command ✅\nReleasing {version_to_release} ❌",
+            text="Missing 'file_path' configuration in .autoreleasegenerator.yml file",
+            conclusion="failure",
+        )
+        return
+
+    try:
+        original_file = repository.get_contents(
+            version_file_path, ref=repository.default_branch
+        )
+    except UnknownObjectException:
+        event.update_check_run(
+            title=f"Releasing {version_to_release} ❌",
+            summary=f"Checking for release command ✅\nReleasing {version_to_release} ❌",
+            text=f"No {_escape_markdown(version_file_path)} file found in the branch",
+            conclusion="failure",
+        )
+        return
+
+    version_pattern = config.get("version_pattern", r"__version__ = \"$version\"")
+    version_pattern = Template(version_pattern).substitute(version="(.+)")
     original_file_content = original_file.decoded_content.decode()
-    original_version_in_file = re.search(
-        r"__version__ = \"(.+?)\"", original_file_content
-    ).group(1)
+    if pattern_found := re.search(version_pattern, original_file_content):
+        original_version_in_file = pattern_found.group(1)
+    else:
+        event.update_check_run(
+            title=f"Releasing {version_to_release} ❌",
+            summary=f"Checking for release command ✅\nReleasing {version_to_release} ❌",
+            text=f"No version with the pattern '{_escape_markdown(version_pattern)}' "
+            f"found in {_escape_markdown(version_file_path)}",
+            conclusion="failure",
+        )
+        return
 
     file_to_update = repository.get_contents(version_file_path, ref=event.ref)
     file_to_update_current_content = file_to_update.decoded_content.decode()
@@ -136,4 +168,10 @@ def release(event: PushEvent) -> None:
             new_content,
             file_to_update.sha,
             branch=event.ref,
+        )
+        event.update_check_run(
+            title="Release Complete ✅",
+            summary=f"Released {version_to_release} ✅",
+            text=f"Release version updated to '{version_to_release}' in {_escape_markdown(version_file_path)}",
+            conclusion="success",
         )
