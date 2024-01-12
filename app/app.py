@@ -23,6 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 APP_NAME = "Auto Release Generator"
+__version__ = "0.1"
 app = Flask(APP_NAME)
 
 
@@ -43,7 +44,7 @@ def sentry_init():
 
 
 sentry_init()
-webhook_handler.handle_with_flask(app)
+webhook_handler.handle_with_flask(app, version=__version__, versions_to_show=["github-app-handler"])
 
 
 def _escape_markdown(text):
