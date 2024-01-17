@@ -44,7 +44,9 @@ def sentry_init():
 
 
 sentry_init()
-webhook_handler.handle_with_flask(app, version=__version__, versions_to_show=["github-app-handler"])
+webhook_handler.handle_with_flask(
+    app, version=__version__, versions_to_show=["github-app-handler"]
+)
 
 
 def _escape_markdown(text):
